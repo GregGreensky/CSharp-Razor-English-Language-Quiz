@@ -1,0 +1,591 @@
+@{var db = Database.Open("SiteSqlServer"); var selectQueryString = "DECLARE @NrModulu int; DECLARE @UsrDefRID int; DECLARE @pytanie varchar(100); DECLARE @wzorzec_pytania varchar(100); DECLARE @odpowiedz varchar(50); DECLARE @student varchar(100); DECLARE @opcje varchar(500); DECLARE @prawidlowa_odpowiedz varchar(50); DECLARE @miejsce_dwoch_spacji tinyint; DECLARE @miejsce_konca_dobrej_odp tinyint; DECLARE @dobra_odp_na_koncu_string varchar(100); SELECT TOP 1 @NrModulu = ModuleID FROM [engraft].[dbo].[green_dnn_vw_UserDefinedTable_Data] WHERE ModuleID=513 OR ModuleID=539 OR ModuleID=546 OR ModuleID=551 OR ModuleID=1553 OR ModuleID=1555 OR ModuleID=1576 OR ModuleID=1623 AND FieldTitle NOT LIKE 'Imi%' AND FieldTitle <> 'Twój adres e-mail' AND FieldTitle <> 'Zmieniono' AND FieldTitle <> 'Zmienione przez' AND FieldTitle <> 'Utworzone przez' AND FieldTitle <> 'Utworzono' AND LEN(FieldTitle)<100 AND LEN(FieldTitle) > 3 ORDER BY NEWID(); SELECT TOP 1 @UsrDefRID = UserDefinedRowId FROM [engraft].[dbo].[green_dnn_vw_UserDefinedTable_Data] WHERE ModuleID = @NrModulu ORDER BY NEWID(); SELECT TOP 1 @pytanie = FieldTitle FROM [engraft].[dbo].[green_dnn_vw_UserDefinedTable_Data] WHERE ModuleID = @NrModulu AND FieldTitle NOT LIKE 'Imi%' AND FieldTitle <> 'Twój adres e-mail' AND FieldTitle <> 'Zmieniono' AND FieldTitle <> 'Zmienione przez' AND FieldTitle <> 'Utworzone przez' AND FieldTitle <> 'Utworzono' AND LEN(FieldTitle)<200 AND LEN(FieldTitle) > 3 ORDER BY NEWID(); SELECT @wzorzec_pytania = FieldTitle FROM [engraft].[dbo].[green_dnn_UserDefinedFields] WHERE FieldTitle = @pytanie ORDER BY NEWID(); SELECT @opcje = CAST(SUBSTRING(InputSettings,1, (LEN(InputSettings) - 9)) + ';' AS nvarchar(max)) FROM [engraft].[dbo].[green_dnn_UserDefinedFields] WHERE ModuleId = @NrModulu AND FieldTitle = @wzorzec_pytania; SELECT @miejsce_dwoch_spacji = CHARINDEX('  ', @opcje, 1); SELECT @miejsce_konca_dobrej_odp = CHARINDEX(';', @opcje, @miejsce_dwoch_spacji); SELECT @dobra_odp_na_koncu_string = SUBSTRING(@opcje, @miejsce_dwoch_spacji, (LEN(@opcje) - @miejsce_dwoch_spacji)); SELECT @prawidlowa_odpowiedz = LTRIM(SUBSTRING(@opcje,@miejsce_dwoch_spacji, (CHARINDEX(';', @opcje, @miejsce_dwoch_spacji) - CHARINDEX('  ', @opcje, @miejsce_dwoch_spacji)))); SELECT @odpowiedz = FieldValue FROM [engraft].[dbo].[green_dnn_vw_UserDefinedTable_Data] WHERE ModuleID = @NrModulu AND @pytanie = FieldTitle ORDER BY NEWID(); SELECT @student = FieldValue FROM [engraft].[dbo].[green_dnn_vw_UserDefinedTable_Data] WHERE ModuleID = @NrModulu AND FieldTitle LIKE 'Imi%' ORDER BY NEWID(); SELECT TOP 1 @NrModulu AS ModID, @UsrDefRID AS UsrID, @pytanie AS Quest, @opcje AS Options, @odpowiedz AS Answ, @student AS Student, @prawidlowa_odpowiedz AS CorrAnsw FROM [engraft].[dbo].[green_dnn_vw_UserDefinedTable_Data] WHERE ModuleID = @NrModulu";
+
+    <style>
+        [type="radio"] + label::after, [type="radio"] + label::before {
+            top: -2px;
+        }
+        /*.modal-backdrop {
+            opacity:0;
+            z-index:-1;
+        }*/
+        fieldset {
+            margin: 0 0 0 160px;
+        }
+
+        .front {
+            position: absolute;
+            width: 100%;
+            transform-style: preserve-3d;
+            backface-visibility: visible;
+            /*transform: rotateY(0deg);*/
+        }
+
+        .butoniada-front {
+            backface-visibility: visible;
+            transform-style: preserve-3d;
+            /*transform: rotateY(0deg);*/
+            position: absolute;
+            width: 100%;
+            bottom: 10px;
+            left: 0;
+        }
+
+        .back {
+            backface-visibility: hidden;
+            transform-style: preserve-3d;
+            transform: rotateY(-180deg);
+        }
+
+        .butoniada-back {
+            backface-visibility: hidden;
+            transform-style: preserve-3d;
+            transform: rotateY(0deg);
+            position: absolute;
+            width: 100%;
+            bottom: 10px;
+            left: 0;
+        }
+
+        .form-group {
+            margin-bottom: 0;
+        }
+
+        #intro-pre, #intro-post, #intro-u {
+            font-size: 1.2em;
+            text-align: justify;
+        }
+
+        .idle-wrapper {
+            display: inline-block;
+        }
+
+        #stats {
+            visibility: hidden;
+        }
+
+        #dnn_ctr1734_ModuleContent {
+            display: block;
+        }
+    </style>
+
+    if (IsPost)
+    {
+        var errorMessage = "";
+        var cor_answs1 = Request["name_nextq"];
+        var no_o_answs1 = Request["name_no_o_answs"];
+        var percent1 = Request["name_percent"];
+        var ip = Request.UserHostAddress;
+        var cos = Request["rowAnsw"];
+        try
+        {
+            if (Request.Form["stater"] != null)
+            {
+
+                WebMail.SmtpServer = "*************";
+                WebMail.SmtpPort = 587;
+                WebMail.UserName = "*******";
+                WebMail.Password = "*******";
+                WebMail.From = "*********";
+
+                // Send email
+                WebMail.Send(to: "**********",
+                subject: "Wyniki testu",
+                body: "Wyniki testu: <br /> Ilość prawidłowych odpowiedzi: " + cor_answs1 + "<br /> Ilość udzielonych odpowiedzi: " + no_o_answs1 + "<br />Statystyka poprawnych odpowiedzi: " + percent1 + "<br />Error message: " + errorMessage + "<br />User IP: " + ip + "<br />Coś: " + cos
+
+                );
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+
+    }
+
+    <!-- Modal 1-->
+    <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <!--Content-->
+            <div class="modal-content">
+                <!--Header-->
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Następny">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    <h4 class="modal-title w-100" id="myModalLabel">Wynik</h4>
+                </div>
+                <!--Body-->
+                <div class="modal-body">
+                    Twoja odpowiedź:   <span style="font-weight:bold;" id="wyb_uz"></span><br /> Prawidłowa odpowiedź:  <span id="pr_odp" style="font-weight:bold;"></span>
+                </div>
+                <!--Footer-->
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="test_end" data-dismiss="modal" disabled>Statystyki</button>
+                    <button type="button" class="btn btn-primary" data-dismiss="modal" id="nextq">Następne pytanie</button>
+                </div>
+            </div>
+            <!--/.Content-->
+        </div>
+    </div>
+
+    <!-- Modal 2-->
+    <div class="modal fade" id="myModal2" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" style="z-index:2500">
+        <div class="modal-dialog" role="document">
+            <!--Content-->
+            <div class="modal-content">
+                <!--Header-->
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    <h4 class="modal-title w-100" id="myModalLabel">Wybierz odpowiedź!</h4>
+                </div>
+                <!--Body-->
+                <div class="modal-body">
+                    Wybierz jedną z podanych opcji, aby sprawdzić poprawność dokonanego wyboru.
+                </div>
+                <!--Footer-->
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">OK</button>
+                </div>
+            </div>
+            <!--/.Content-->
+        </div>
+    </div>
+
+    <div id="card" style="height:500px;margin:50px;overflow:hidden;position:relative">
+        <div class="front" style="padding:50px;margin:0 auto;text-align:center;font-size:14px;height:100%;background-color:aliceblue">
+            @*Front content*@
+
+            @foreach (var row in db.Query(selectQueryString))
+
+            {
+
+                var i = 0;
+
+                <input type="hidden" id="module_no" value="@row.ModID" />
+
+                <div id="intro-pre"><span id="intro-pre-pre"></span>, <span id="intro-pre-stud"><b>@row.Student</b></span>, <span id="intro-pre-post"></span></div><br />
+
+                <input type="hidden" id="row_options" value="@row.Options" />
+                @*<span id="@row.Quest-id">@row.Quest</span>*@
+
+                if (@row.Quest.Contains("&#44;"))
+                {
+
+                    <label for="pytanie">
+                        <span id="pytanie"><b>@row.Quest.Replace("&#44;", ",")</b></span>
+                    </label>
+                }
+                else if (@row.Quest.Contains("&#58;"))
+                {
+                    <label for="pytanie">
+                        <span id="pytanie"><b>@row.Quest.Replace("&#58;", ":")</b></span>
+                    </label>
+                }
+                else if (@row.Quest.Contains("&#63;"))
+                {
+                    <label for="pytanie">
+                        <span id="pytanie"><b> @row.Quest.Replace("&#63;", "?")</b></span>
+                    </label>
+                }
+                else
+                {
+                    <label for="pytanie">
+                        <span id="pytanie"><b>@row.Quest</b></span>
+                    </label>
+                }
+
+                <input type="hidden" id="pyt_popr" value=@row.Quest />
+
+                @*string[] l_10_q = new string[10];
+                    var l10q = 0;
+
+                    for (l10q = 0; l10q < 10; l10q++)
+                    {
+                        l_10_q[l10q] = @row.Quest;
+                        <input type="hidden" id="ost_10_pyt" value="@l_10_q[l10q].ToString();" />
+                        };*@
+
+                @*Listing opcji wyboru*@
+                foreach (var substring in row.Options.Remove(@row.Options.Length - 1).Split(';'))
+                {
+                    <fieldset class="form-group" style="transform:translate3d(0,0,0)">
+                        <div class="dnnFormItem">
+                            <div id="@row.Quest" class="dnnLabel" style="position:relative">
+
+                                <span class="dnnFormRadioButtons">
+
+                                    @*<span class="dnnRadiobutton">
+                                            <span class="mark"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAMAAAAoyzS7AAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAAZQTFRFAAAAAAAApWe5zwAAAAF0Uk5TAEDm2GYAAAAMSURBVHjaYmAACDAAAAIAAU9tWeEAAAAASUVORK5CYII=" alt="checkbox"></span>
+                                        </span>*@
+                                    <input id="@substring-@i" type="radio" name="opcja" value="@substring" class="with-gap" style="position: absolute; z-index: -1; opacity: 0;">
+                                    <label for="@substring-@i" class="dnnBoxLabel">@substring @*: index=@i*@</label>
+                                </span>
+                            </div>
+                        </div>
+                    </fieldset>
+                    i++;
+                }
+
+                <br /><div id="intro-post">wybrał(-a) odpowiedź <b>@row.Answ</b>.</div>
+
+                <div id="intro-u">A <em>Ty</em> wybrał(-a)byś którą odpowiedź?</div>
+
+                <input type="hidden" id="module_id" name="name_module_id" value="@Dnn.Module.ModuleID" />
+                <input type="hidden" id="portal_email" value="@Dnn.Portal.Email" />
+
+                <input type="hidden" id="user_answer" runat="server" name="rowAnsw" value="@row.Answ" />
+                <input type="hidden" id="ansCor" name="ansCor" value="@row.CorrAnsw" />
+
+                <input type="hidden" value="@row.CorrAnsw" id="ansCor2" />
+                <input type="hidden" value="@row.Quest" id="pytanko" />
+
+                <div class="butoniada-front">
+                    <input type="button" class="btn btn-primary btn-lg submit" id="check_btn" value="Sprawdź" data-toggle="modal" />
+                </div>
+
+            } @*end of for-each loop*@
+        </div>
+
+        <div class="back" id="backer" style="padding:50px;margin:0 auto;text-align:center;font-size:20px;height:100%;background-color:ghostwhite">
+            <p><span id="biko"></span></p>
+            <div>Zadanie brzmiało:<br /><b><span id="pyt_session"></span></b></div><br />
+            <div>Twoja odpowiedź to: <span id="wybuz" style="font-weight:bold"></span><br />A prawidłowa odpowiedź to: <span id="prodp" name="prodp" style="font-weight:bold; color:green"></span></div>
+            <div id="stats" class="stats_class">Ilość prawidłowych odpowiedzi: <b><span id="stats_no_corr_answs" name="name_cor_answs" value="Shooter" runat="server"></span></b>.</div>
+            <div id="stats" class="stats_class">Ilość udzielonych oddpowiedzi: <b><span id="stats_no_attempts" name="name_no_o_answs" runat="server"></span></b>.</div>
+            <div runat="server" id="stats" class="stats_class">Statystyka poprawnych odpowiedzi: <b><span id="percent" name="name_percent" runat="server"></span></b></div>
+
+            <div class="butoniada-back">
+                <div class="idle-wrapper" data-toggle="tooltip" data-html="true" data-placement="top" title="Statystyki dostępne po rozwiązaniu każdych 10 zadań">
+                    <input type="button" data-toggle="tooltip" class="btn btn-secondary stats" id="test_end" data-dismiss="modal" aria-disabled="true" name="stater" value="Statystyki" />
+                </div>
+                <button type="button" class="btn btn-primary" data-dismiss="modal" id="nextq" data-toggle="tooltip" data-placement="top" name="name_nextq" title="Przejdź do następnego zadania">Następne pytanie</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+        $(document).ready(function () {
+
+            //$('.stats').prop('disabled', true);
+
+            $(function () {
+                $('[data-toggle="tooltip"]').tooltip();
+            });
+            var last_10_qs = [];
+
+            if (!sessionStorage.num_att) {
+                document.getElementById('intro-pre-pre').innerHTML = "Nr 2 - Jeden z użytkowników naszego portalu";
+                document.getElementById('intro-pre-post').innerHTML = "podczas rozwiązywania testu na znajomość zasad gramatyki angielskiej na poziomie B1/B1+/B2/B2+ (wg CEF), czyli <i>Pre-Intermediate/Pre-Intermediate+/Intermediate/Intermediate+ (wg Cambridge University Syndicate)</i>, na poniższe zadanie wielokrotnego wyboru:";
+                sessionStorage.ses_start = Date();
+                sessionStorage.num_att = "";
+            }
+
+            else if (Number(sessionStorage.num_att) >= 1 && Number(sessionStorage.num_att) <= 4) {
+                    document.getElementById('intro-pre-pre').innerHTML = "Przypominamy, że w niniejszym teście chodzi o porównanie swojej znajomości gramatyki na poziomie B1/B1+/B2/B2+ języka angielskiego z jej znajomością u użytkowników naszego portalu edukacyjnego.<br />W tym przypadku";
+                    document.getElementById('intro-pre-post').innerHTML = " w zadaniu ...";
+                 }
+
+            else {
+                document.getElementById('intro-pre-pre').innerHTML = "Elseeee - Przypominamy, że w niniejszym teście chodzi o porównanie swojej znajomości gramatyki na poziomie B1/B1+/B2/B2+ języka angielskiego z jej znajomością u użytkowników naszego portalu edukacyjnego.<br />W tym przypadku";
+                document.getElementById('intro-pre-post').innerHTML = " w zadaniu ...";
+                 };
+
+            $(".stats").live("click", function () {
+                $(".stats_class").css("visibility", "visible");
+                alert("Procenty: " + $("#percent").text());
+            });
+
+            //sprawdzenie poprawnośći wyboru
+            $("#check_btn").live("click", function () {
+
+                $(function () {
+                    $('[data-toggle="tooltip"]').tooltip();
+                });
+
+                if (sessionStorage.num_att % 10 != 0 || !sessionStorage.num_att) {
+                    //$(".stats").css("visibility", "hidden").prop("disabled", false).css("visibility", "visible");
+                    //$(".butoniada-back").css("backface-visibility", "hidden");
+                    $(".back").css("display", "none");
+                    $(".stats").attr("disabled", "disabled");
+                    $(".back").css({ "display": "inline-block", "width": "100%" });
+                    $(".idle-wrapper").attr({ "data-placement": "left", "data-html": "true", "data-original-title": "Statystyki dostępne po rozwiązaniu każdych 10 zadań.<hr />Ilość zadań, które musisz rozwiązać, aby móc sprawdzić swoje statystyki: <span style='color:tomato'>" + (10 - sessionStorage.num_att % 10) + "</span>" });
+                    //$('.stats').prop("disabled", false);
+                    //$(".stats").css("visibility", "visible");
+                }
+                else {
+                    $(".idle-wrapper").attr("data-original-title", "Sprawdź swoje statystyki");
+                };
+
+                //$("#dnn_ctr1734_ModuleContent").ajaxStop(function () {
+
+                var poprOdp = document.getElementById("ansCor2").value;
+                var pyt = document.getElementById('pytanie').innerText;
+
+                //ostatnie zadane 310 pytań - jeśli jest mniej to każda następne pytanie jest dodawane do zestawu; jeśli jest wiecej - pierwsze pytanie z początku listy jest usuwane, a nowe dodawane.
+
+                if (last_10_qs.length <= 310) {
+                    last_10_qs.push(pyt);
+                    sessionStorage.l_10_q = last_10_qs;
+                }
+                else {
+                    last_10_qs.shift();
+                    last_10_qs.push(pyt);
+                    sessionStorage.l_10_q = last_10_qs;
+                }
+
+                        var radios = document.getElementsByTagName('input');
+                        var wybor;
+                        for (var kl = 0; kl < radios.length; kl++) {
+                            //jeśli wybrano jakąś opcję wyboru
+                            if (radios[kl].type === 'radio' && radios[kl].checked) {
+                                // get value, set checked flag or do whatever you need to
+                                wybor = radios[kl].value;
+                                //alert(wybor);
+
+                                //alert('Your answer is: : ' + wybor + '\n\nCorrect answer is:          ' + poprOdp);
+
+                                    sessionStorage.wyb_uz = wybor.trim();
+                                    sessionStorage.pr_odp = poprOdp.trim();
+                                    sessionStorage.pyt = pyt;
+
+                                    document.getElementById('wybuz').innerHTML =                           sessionStorage.wyb_uz;
+                                    document.getElementById('prodp').innerHTML =                          sessionStorage.pr_odp;
+                                    document.getElementById('pyt_session').innerHTML =                    sessionStorage.pyt;
+
+                            //jeśli jest to pierwsza sesja przeglądarki
+                                    if (!sessionStorage.num_att)
+                                    {
+                                        //alert("No of attempts: " + sessionStorage.num_att);
+                                         sessionStorage.num_att = 1;
+                                        document.getElementById('stats_no_attempts').innerHTML              =  sessionStorage.num_att;
+
+                                //alert("No of attempts: " + sessionStorage.num_att);
+                                    }
+
+                            //jeśli jest to kolejna sesja przeglądarki
+                                else {
+
+                                //alert("No of attempts: " + sessionStorage.num_att);
+                                        sessionStorage.num_att = Number                                         (sessionStorage.num_att) + 1;
+                                        document.getElementById('stats_no_attempts').innerHTML                  = sessionStorage.num_att;
+
+                                        //alert("No of attempts: " + sessionStorage.num_att);
+                                    };
+
+                                    //jeśli wybrano prawidłową odpowiedź
+                                    if (sessionStorage.wyb_uz == sessionStorage.pr_odp)
+                                    {
+                                        $('#wybuz').css("color", "green");
+                                        document.getElementById('biko').innerHTML = "Brawo,                     wybrałeś / wybrałaś poprawną odpowiedź!<br /                            >Kontynuuj dobrą passę odpowiadając na następne                         pytania w naszym teście.<br />";
+                                            $('#biko').css({ "color": "green", "font-weight":                       "bold" });
+                                        //stats - jeśli wybrano prawidłowa odpowiedź na                         początku sesji
+                                        if (!sessionStorage.num_corr_answs) {
+                                            //alert("No of correct answers: " +                                     sessionStorage.num_corr_answs);
+                                             sessionStorage.num_corr_answs = 1;
+                                              document.getElementById                                               ('stats_no_corr_answs').innerHTML =                                     sessionStorage.num_corr_answs;
+                                                //alert("No of correct answers: " +                                     sessionStorage.num_corr_answs);
+                                        }
+
+                                            //stats - jeśli wybrano prawidłowa odpowiedź w                          trakcie trwania sesji
+                                        else {
+                                            //alert("No of correct answers: " +                                     sessionStorage.num_corr_answs);
+                                            sessionStorage.num_corr_answs = Number                                  (sessionStorage.num_corr_answs) + 1;
+                                             document.getElementById                                                ('stats_no_corr_answs').innerHTML =                                     sessionStorage.num_corr_answs;
+                                            //alert("No of correct answers: " +                                     sessionStorage.num_corr_answs);
+                                            };
+
+                                    }
+                                        //jeśli wybrano nieprawidłową odpowiedź
+                               else {
+                                        $('#wybuz').css("color", "red");
+                                        document.getElementById('biko').innerHTML = "Niestety,                  wybrałeś / wybrałaś niewłaściwą odpowiedź!<br /                         >Popraw swoje statystyki odpowiadając na następne                      pytania naszego testu.<br />";
+                                        $('#biko').css({ "color": "red", "font-weight":                         "bold" });
+                                        //jeśli to była niepoprawna odpowiedź na początku                       sesji
+                                        if (!sessionStorage.num_corr_answs)
+                                        {
+                                            //alert("No of correct answers: " +                                     sessionStorage.num_corr_answs);
+                                              sessionStorage.num_corr_answs = 0;
+                                                document.getElementById                                             ('stats_no_corr_answs').innerHTML =                                     sessionStorage.num_corr_answs;
+                                                //alert("No of correct answers: " +                                     sessionStorage.num_corr_answs);
+                                        }
+                                            //jeśli to była niepoprawna odpowiedź w trakcie                         trwania sesji
+                                    else {
+                                            sessionStorage.num_corr_answs =                                         sessionStorage.num_corr_answs;
+                                            document.getElementById                                                 ('stats_no_corr_answs').innerHTML =                                    sessionStorage.num_corr_answs;
+                                        }
+                                    }
+
+                                    //$('#myModal').modal();
+
+                                        //$("#card").flip('toggle');
+
+                                        //Odświeżanie danych
+                                        //$("#dnn_ctr1734_ModuleContent").fadeToggle(750).load                  (location.href + " #dnn_ctr1734_ModuleContent>*",                   "").fadeToggle(1900);
+
+                                $('.form-group').css({ "transform": "rotateY(0deg)",                    "transition": "1.5s", "transform-style": "preserve-3d",                 "backface-visibility": "hidden" });
+
+                                 $('.front').css({ "transform": "rotateY(-180deg)",                     "transition": "1.5s", "transform-style": "preserve-3d",                 "backface-visibility": "hidden" });
+
+                                     $(".butoniada-front").css({ "transform": "rotateY(0deg)",              "transition": "1.5s", "transform-style": "preserve-3d",                 "backface-visibility": "hidden" });
+
+                                $('.back').css({ "transform": "rotateY(0deg)", "transition":            "1.5s", "transform-style": "preserve-3d", "backface-                visibility": "hidden" });
+
+                                $('.butoniada-back').css({ "transform": "rotateY(0deg)",                "transition": "1.5s", "transform-style": "preserve-3d",             "backface-visibility": "hidden" });
+
+                            }
+
+                        }
+
+                    if (!wybor) {
+
+                        //alert("Brak wybranej odpowiedzi!");
+                        event.preventDefault();
+                        event.stopImmediatePropagation();
+                        $('#myModal2').modal();
+
+                    };
+                    document.getElementById('percent').innerHTML = Math.round((sessionStorage.num_corr_answs / sessionStorage.num_att) * 100) + "%";
+
+                    //if (sessionStorage.num_att <= 4 || !sessionStorage.num_att) {
+                    //    $(".butoniada-back").css("visibility", "hidden");
+                    //    $('.stats').prop("disabled", true);
+                    //    $(".butoniada-back").css("visibility", "visible");
+                    //}
+                    //else
+
+            });
+
+                    //$("#btnid").click(function () {
+                    //    $.ajax({
+                    //        url: location.href,
+                    //        type: "GET",
+                    //        data: $("#dnn_ctr1734_ModuleContent").serialize(),
+                    //        datatype: "html",
+                    //        cache: false,
+                    //        async: false,
+                    //        success: function (data) {
+                    //            $("#dnn_ctr1734_ModuleContent").html(data);
+                    //            alert("Success!!!");
+                    //        },
+                    //        error: function () { alert('error'); }
+                    //    });
+                    //});
+
+                    //This one's with a timer
+
+                    //$("#dnn_ctr1734_ModuleContent").fadeToggle(1000).load(location.href + " #dnn_ctr1734_ModuleContent>*", "").fadeToggle(2900);
+                    //var refreshId = setInterval(function () {
+                    //    $("#dnn_ctr1734_ModuleContent").fadeToggle(800).load(location.href + " #dnn_ctr1734_ModuleContent>*", "").fadeToggle(2900);
+                    //}, 5000);
+                    //$.ajax({
+                    //    cache: false,
+                    //success: function () {
+                    //    $("dnn_ctr1734_ModuleContent>*").load(location.href + " dnn_ctr1734_ModuleContent>*");
+                    //}
+                    //});
+
+               @*$("#dnn_ctr1734_ModuleContent").ajaxComplete(function () {
+                alert('Ajax Complete :' + '@row.CorrAnsw');
+            });*@
+
+                    //alert("sessionStorage.wyb_uz: " + sessionStorage.wyb_uz + "\n\nsessionStorage.pr_odp: " + sessionStorage.pr_odp);
+                    //document.getElementById("wyb_uz").innerHTML = sessionStorage.wyb_uz;
+                    //document.getElementById("pr_odp").innerHTML = sessionStorage.pr_odp;
+
+                });
+
+        $("#nextq").live("click", function last174() {
+
+            $("#dnn_ctr1734_ModuleContent").fadeToggle(100);
+            //$('.back').css({ "transform": "rotateY(180deg)", "transition": "2.9s", "transform-style": "preserve-3d", "backface-visibility": "hidden" });
+
+            //ładowanie nowego zestawu
+            $("#dnn_ctr1734_ModuleContent").load(location.href + " #dnn_ctr1734_ModuleContent>*", function () {
+                if (Number(sessionStorage.num_att) >= 1) {
+                    document.getElementById("intro-pre-pre").innerHTML = "Nr 5 W tym przypadku";
+                    document.getElementById("intro-pre-post").innerHTML = "w zadaniu ...";
+
+                        //sprawdzanie czy nowe pytanie nie powtarz się w ostatnich 174 pytaniach
+                        var last_ten = sessionStorage.l_10_q;
+                        //alert("Ostatnie 10 pytań: " + last_ten);
+                        var new_question = document.getElementById("pytanie").innerText.toString();
+                        //alert("Nowe pytanie: " + new_question);
+
+                        if (last_ten.includes(new_question) == true) {
+
+                            //alert("Powtórka");
+                            document.getElementById("intro-pre-pre").innerHTML = "Szukam pytania na które jeszcze nie odpowiadałeś.";
+                            document.getElementById("intro-pre-post").innerHTML = "Czekaj ...";
+                            last174.call();
+
+
+                            $("#dnn_ctr1734_ModuleContent").load(location.href + " #dnn_ctr1734_ModuleContent>*", function () {
+                                if (Number(sessionStorage.num_att) >= 1) {
+                                    document.getElementById("intro-pre-pre").innerHTML = "Nr 5 W tym przypadku";
+                                    document.getElementById("intro-pre-post").innerHTML = "w zadaniu ...";
+                                };
+
+                            });
+                            $("#dnn_ctr1734_ModuleContent").fadeToggle(800);
+
+                        }
+
+                        else {
+                            $("#dnn_ctr1734_ModuleContent").fadeToggle(800);
+                        };
+
+                };
+
+                });
+
+            /////////////////////////////////////////////////////////
+
+            //$("#dnn_ctr1734_ModuleContent").load(location.href + " #dnn_ctr1734_ModuleContent>*", function () {
+            //    if (Number(sessionStorage.num_att) >= 1) {
+            //        document.getElementById("intro-pre-pre").innerHTML = "Nr 5 W tym przypadku";
+            //        document.getElementById("intro-pre-post").innerHTML = "w zadaniu ...";
+            //    };
+
+            //});
+
+            ///////////////////////////////////////////////////////////
+
+                    @*$("#dnn_ctr1734_ModuleContent").live("fadeIn", function () {
+                        document.getElementById("intro-pre").innerHTML = "W tym przypadku nr 3, użytkownik <b>@row.Student</b> w zadaniu ...";
+                    });*@
+
+                    //$('.butoniada-back').css({ "transform": "rotateY(0deg)", "transition": "2.0s", "transform-style": "preserve-3d", "backface-visibility": "hidden" });
+
+                    //$("#card").flip('toggle');
+
+                    //$('.form-group').css({ "transform": "rotateY(0deg)", "transition": "2.0s", "transform-style": "preserve-3d", "backface-visibility": "hidden" });
+
+                    //$('.front').css({ "transform": "rotateY(0deg)", "transition": "2.0s", "transform-style": "preserve-3d", "backface-visibility": "hidden" });
+
+                    //$(".butoniada-front").css({ "transform": "rotateY(0deg)", "transition": "2.0s", "transform-style": "preserve-3d", "backface-visibility": "hidden" });
+
+                    //$("#myModal").modal("hide");
+
+            });
+
+        //$("#Form").submit(function (e) {
+        //    e.preventDefault();
+
+        //    $.ajax({
+        //        url: $(this).attr('action'),
+        //        type: "GET",
+        //        data: $(this).serialize(),
+        //        success: function (data) {
+        //            $("#Form").html(data);
+        //        },
+        //        error: function (jXHR, textStatus, errorThrown) {
+        //            alert(errorThrown);
+        //        }
+        //    });
+        //});
+    </script>
+
+}
